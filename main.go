@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	msgr := messenger.GetMessenger(8033, 8044, 3)
+	msgr := messenger.GetMessenger(8033, 8044, 0)
 	msgr.Run()
 	for  {
 		time.Sleep(2 * time.Second)
