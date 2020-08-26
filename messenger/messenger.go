@@ -10,10 +10,10 @@ import (
 )
 
 type Messenger struct {
-	MsgPipeline chan string
-	producerPort int
-	consumerPort int
-	consumerConnections []net.Conn
+	MsgPipeline            chan string
+	producerPort           int
+	consumerPort           int
+	consumerConnectionPool []net.Conn
 }
 
 func GetMessenger(producerPort int, consumerPort int, msgBufferSize int) (msgr *Messenger) {
@@ -25,11 +25,20 @@ func GetMessenger(producerPort int, consumerPort int, msgBufferSize int) (msgr *
 	return
 }
 
+func (msgr *Messenger) removeConnectionFromPool(c net.Conn) {
+	for i, cc := range msgr.consumerConnectionPool {
+		if c == cc {
+			msgr.consumerConnectionPool = append(msgr.consumerConnectionPool[:i], msgr.consumerConnectionPool[i+1:]...)
+		}
+	}
+}
+
 func (msgr *Messenger) sendMessageToConsumerConnection(c net.Conn, msg string) {
 	_, err := c.Write([]byte(msg))
 	if err != nil {
 		log.Println(err)
 		_ = c.Close()
+		msgr.removeConnectionFromPool(c)
 	}
 }
 
@@ -93,14 +102,14 @@ func (msgr *Messenger) listenForConsumers() {
 			fmt.Println(err)
 			continue
 		}
-		msgr.consumerConnections = append(msgr.consumerConnections, c)
+		msgr.consumerConnectionPool = append(msgr.consumerConnectionPool, c)
 	}
 }
 
 func (msgr *Messenger) produceMessages() {
 	for {
 		msg := <- msgr.MsgPipeline + "\n"
-		for _, c := range msgr.consumerConnections {
+		for _, c := range msgr.consumerConnectionPool {
 			go msgr.sendMessageToConsumerConnection(c, msg)
 		}
 	}
