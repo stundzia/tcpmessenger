@@ -113,7 +113,7 @@ func (msgr *messenger) listenForConsumers() {
 // produceMessages consumes messages from msgPipeline channel and sends them to active consumers.
 func (msgr *messenger) produceMessages() {
 	for {
-		msg := <- msgr.msgPipeline + "\n"
+		msg := <-msgr.msgPipeline + "\n"
 		for _, c := range msgr.consumerConnectionPool {
 			go msgr.sendMessageToConsumerConnection(c, msg)
 		}

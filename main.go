@@ -8,7 +8,7 @@ import (
 func main() {
 	msgr := messenger.GetMessenger(8033, 8044, 0)
 	msgr.Run()
-	for  {
+	for {
 		time.Sleep(2 * time.Second)
 	}
 }

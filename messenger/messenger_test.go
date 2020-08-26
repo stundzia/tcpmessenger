@@ -7,12 +7,10 @@ import (
 	"time"
 )
 
-
 var msgr *messenger
 
-
 func init() {
-	msgr = GetMessenger(8033, 8044, 2)
+	msgr = GetMessenger(8033, 8044, 0)
 	go func() {
 		msgr.Run()
 	}()
@@ -29,7 +27,6 @@ func TestMessenger_Run(t *testing.T) {
 		t.Error("could not obtain consumer connection: ", err)
 	}
 }
-
 
 func TestMessengerWithSingleProducerConsumerPair(t *testing.T) {
 	tt := []struct {
@@ -77,10 +74,9 @@ func TestMessengerWithSingleProducerConsumerPair(t *testing.T) {
 	}
 }
 
-
 func TestMessengerWithMultipleProducersAndConsumers(t *testing.T) {
 	tt := []struct {
-		test    string
+		test     string
 		payload1 []byte
 		payload2 []byte
 	}{
