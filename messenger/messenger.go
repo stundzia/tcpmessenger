@@ -17,9 +17,9 @@ type messenger struct {
 }
 
 // GetMessenger initializes and returns a messenger instance.
-func GetMessenger(producerPort int, consumerPort int, msgBufferSize int) (msgr *messenger) {
+func GetMessenger(producerPort int, consumerPort int) (msgr *messenger) {
 	msgr = &messenger{
-		msgPipeline:  make(chan string, msgBufferSize),
+		msgPipeline:  make(chan string),
 		producerPort: producerPort,
 		consumerPort: consumerPort,
 	}

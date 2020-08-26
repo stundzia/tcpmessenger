@@ -5,7 +5,7 @@ import (
 )
 
 func main() {
-	msgr := messenger.GetMessenger(8033, 8044, 0)
+	msgr := messenger.GetMessenger(8033, 8044)
 	msgr.Run()
 	select {}
 }

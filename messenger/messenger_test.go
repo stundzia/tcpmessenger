@@ -10,7 +10,7 @@ import (
 var msgr *messenger
 
 func init() {
-	msgr = GetMessenger(8033, 8044, 0)
+	msgr = GetMessenger(8033, 8044)
 	go func() {
 		msgr.Run()
 	}()
