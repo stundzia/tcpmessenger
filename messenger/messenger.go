@@ -9,23 +9,25 @@ import (
 	"strings"
 )
 
-type Messenger struct {
-	MsgPipeline            chan string
+type messenger struct {
+	msgPipeline            chan string
 	producerPort           int
 	consumerPort           int
 	consumerConnectionPool []net.Conn
 }
 
-func GetMessenger(producerPort int, consumerPort int, msgBufferSize int) (msgr *Messenger) {
-	msgr = &Messenger{
-		MsgPipeline: make(chan string, msgBufferSize),
+// GetMessenger initializes and returns a messenger instance.
+func GetMessenger(producerPort int, consumerPort int, msgBufferSize int) (msgr *messenger) {
+	msgr = &messenger{
+		msgPipeline:  make(chan string, msgBufferSize),
 		producerPort: producerPort,
 		consumerPort: consumerPort,
 	}
 	return
 }
 
-func (msgr *Messenger) removeConnectionFromPool(c net.Conn) {
+// removeConnectionFromPool finds and removes the given connection from the messengers pool of consumer connections.
+func (msgr *messenger) removeConnectionFromPool(c net.Conn) {
 	for i, cc := range msgr.consumerConnectionPool {
 		if c == cc {
 			msgr.consumerConnectionPool = append(msgr.consumerConnectionPool[:i], msgr.consumerConnectionPool[i+1:]...)
@@ -33,21 +35,22 @@ func (msgr *Messenger) removeConnectionFromPool(c net.Conn) {
 	}
 }
 
-func (msgr *Messenger) sendMessageToConsumerConnection(c net.Conn, msg string) {
+func (msgr *messenger) sendMessageToConsumerConnection(c net.Conn, msg string) {
 	_, err := c.Write([]byte(msg))
 	if err != nil {
-		log.Println(err)
-		_ = c.Close()
+		handleConnectionError(err, c)
 		msgr.removeConnectionFromPool(c)
 	}
 }
 
+// handleConnectionError prints the error to stdout and closes the associated connection.
 func handleConnectionError(err error, c net.Conn) {
 	log.Println(err)
 	_ = c.Close()
 }
 
-func (msgr *Messenger) handleProducerConnection(c net.Conn) {
+// handleProducerConnection reads messages sent via producer port connection and sends them to the messages channel.
+func (msgr *messenger) handleProducerConnection(c net.Conn) {
 	defer c.Close()
 	reader := bufio.NewReader(c)
 	for {
@@ -58,7 +61,7 @@ func (msgr *Messenger) handleProducerConnection(c net.Conn) {
 		}
 
 		msg := strings.TrimSpace(netData)
-		msgr.MsgPipeline <- msg
+		msgr.msgPipeline <- msg
 		_, err = c.Write([]byte("Acknowledged\n"))
 		if err != nil {
 			handleConnectionError(err, c)
@@ -67,7 +70,8 @@ func (msgr *Messenger) handleProducerConnection(c net.Conn) {
 	}
 }
 
-func (msgr *Messenger) listenForProducers() {
+// listenForProducers listens for connections on the producer port.
+func (msgr *messenger) listenForProducers() {
 	port := ":" + strconv.Itoa(msgr.producerPort)
 	l, err := net.Listen("tcp4", port)
 	defer l.Close()
@@ -86,8 +90,8 @@ func (msgr *Messenger) listenForProducers() {
 	}
 }
 
-// Listen for new consumer connections and append them to consumer connection pool.
-func (msgr *Messenger) listenForConsumers() {
+// listenForConsumers listens for new consumer connections and adds them to the consumer connection pool.
+func (msgr *messenger) listenForConsumers() {
 	port := ":" + strconv.Itoa(msgr.consumerPort)
 	l, err := net.Listen("tcp4", port)
 	if err != nil {
@@ -106,16 +110,19 @@ func (msgr *Messenger) listenForConsumers() {
 	}
 }
 
-func (msgr *Messenger) produceMessages() {
+// produceMessages consumes messages from msgPipeline channel and sends them to active consumers.
+func (msgr *messenger) produceMessages() {
 	for {
-		msg := <- msgr.MsgPipeline + "\n"
+		msg := <- msgr.msgPipeline + "\n"
 		for _, c := range msgr.consumerConnectionPool {
 			go msgr.sendMessageToConsumerConnection(c, msg)
 		}
 	}
 }
 
-func (msgr *Messenger) Run() {
+// Run starts the messenger.
+// Run will start listening for tcp connections on 2 ports (producerPort and consumerPort).
+func (msgr *messenger) Run() {
 	go msgr.listenForConsumers()
 	go msgr.listenForProducers()
 	go msgr.produceMessages()
