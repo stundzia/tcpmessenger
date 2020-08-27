@@ -76,7 +76,7 @@ func (msgr *messenger) listenForProducers() {
 	l, err := net.Listen("tcp4", port)
 	defer l.Close()
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		return
 	}
 
@@ -95,7 +95,7 @@ func (msgr *messenger) listenForConsumers() {
 	port := ":" + strconv.Itoa(msgr.consumerPort)
 	l, err := net.Listen("tcp4", port)
 	if err != nil {
-		fmt.Println(err)
+		log.Fatal(err)
 		return
 	}
 	defer l.Close()
