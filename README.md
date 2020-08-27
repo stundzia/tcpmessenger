@@ -31,3 +31,11 @@ func main() {
 	select {}
 }
 ```
+
+Build and run in docker:
+```
+# Build from within tcpmessenger root directory:
+docker build --tag tcpmessenger .
+# Run container:
+docker run -p 8033:8033 -p 8044:8044 tcpmessenger
+```
