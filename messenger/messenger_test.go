@@ -16,6 +16,18 @@ func init() {
 	}()
 }
 
+func checkOutputOnConsumerConnection(c net.Conn, expected []byte, t *testing.T) {
+	out := make([]byte, 128)
+	if _, err := c.Read(out); err == nil {
+		out = bytes.Trim(out, "\x00")
+		if bytes.Compare(out, expected) != 0 {
+			t.Errorf("response did not match expected output - got `%s`, but expected `%s`", string(out), string(expected))
+		}
+	} else {
+		t.Error("could not read from connection")
+	}
+}
+
 func TestMessenger_Run(t *testing.T) {
 	time.Sleep(1 * time.Second) // Give time for messenger to spin up.
 	producerConn, err := net.Dial("tcp", ":8033")
@@ -61,15 +73,7 @@ func TestMessengerWithSingleProducerConsumerPair(t *testing.T) {
 				t.Error("could not write payload to producer: ", err)
 			}
 
-			out := make([]byte, 128)
-			if _, err := consumerConn.Read(out); err == nil {
-				out = bytes.Trim(out, "\x00")
-				if bytes.Compare(out, tc.payload) != 0 {
-					t.Errorf("response did not match expected output - got `%s`, but expected `%s`", string(out), string(tc.payload))
-				}
-			} else {
-				t.Error("could not read from connection")
-			}
+			checkOutputOnConsumerConnection(consumerConn, tc.payload, t)
 		})
 	}
 }
@@ -128,15 +132,7 @@ func TestMessengerWithMultipleProducersAndConsumers(t *testing.T) {
 			}
 
 			for _, cc := range consumerConns {
-				out := make([]byte, 128)
-				if _, err := cc.Read(out); err == nil {
-					out = bytes.Trim(out, "\x00")
-					if bytes.Compare(out, tc.payload1) != 0 {
-						t.Errorf("response did not match expected output - got `%s`, but expected `%s`", string(out), string(tc.payload1))
-					}
-				} else {
-					t.Error("could not read from connection")
-				}
+				checkOutputOnConsumerConnection(cc, tc.payload1, t)
 			}
 
 			if _, err := producerConn.Write(tc.payload2); err != nil {
@@ -144,15 +140,7 @@ func TestMessengerWithMultipleProducersAndConsumers(t *testing.T) {
 			}
 
 			for _, cc := range consumerConns {
-				out := make([]byte, 128)
-				if _, err := cc.Read(out); err == nil {
-					out = bytes.Trim(out, "\x00")
-					if bytes.Compare(out, tc.payload2) != 0 {
-						t.Errorf("response did not match expected output - got `%s`, but expected `%s`", string(out), string(tc.payload2))
-					}
-				} else {
-					t.Error("could not read from connection")
-				}
+				checkOutputOnConsumerConnection(cc, tc.payload2, t)
 			}
 		})
 	}
