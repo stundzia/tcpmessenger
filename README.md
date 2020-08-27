@@ -7,12 +7,12 @@ to any consumer port connections.
 
 Tested with Go v1.14.
 
-Download:
+Download the package:
 ```
 go get f.oxy.works/paulius.stundzia/tcpmessenger
 ```
 
-Usage as a package:
+Package usage:
 ```go
 package main
 
@@ -25,10 +25,9 @@ func main() {
     // Create messenger that listens for messages on port 8033
     // and sends them to port 8044
 	msgr := messenger.GetMessenger(8033, 8044)
+    // Run the messenger
 	msgr.Run()
     // Prevent main goroutine from exiting
-	for  {
-		time.Sleep(2 * time.Second)
-	}
+	select {}
 }
 ```
