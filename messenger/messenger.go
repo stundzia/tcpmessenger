@@ -110,7 +110,7 @@ func (msgr *messenger) listenForConsumers() {
 	}
 }
 
-// produceMessages consumes messages from msgPipeline channel and sends them to active consumers.
+// produceMessages reads messages from the msgPipeline channel and sends them to active consumers.
 func (msgr *messenger) produceMessages() {
 	for {
 		msg := <-msgr.msgPipeline + "\n"
