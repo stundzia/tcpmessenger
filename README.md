@@ -24,7 +24,7 @@ import (
 func main() {
     // Create messenger that listens for messages on port 8033
     // and sends them to port 8044
-	msgr := messenger.GetMessenger(8033, 8044, 0)
+	msgr := messenger.GetMessenger(8033, 8044)
 	msgr.Run()
     // Prevent main goroutine from exiting
 	for  {
