@@ -23,7 +23,6 @@ func GetMessenger(producerPort int, consumerPort int) (msgr *messenger) {
 		producerPort: producerPort,
 		consumerPort: consumerPort,
 	}
-	return
 }
 
 // removeConnectionFromPool finds and removes the given connection from the messengers pool of consumer connections.
