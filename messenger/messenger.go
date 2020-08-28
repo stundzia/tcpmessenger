@@ -35,6 +35,7 @@ func (msgr *messenger) removeConnectionFromPool(c net.Conn) {
 	}
 }
 
+// sendMessageToConsumerConnection sends the provided msg string over the given connection.
 func (msgr *messenger) sendMessageToConsumerConnection(c net.Conn, msg string) {
 	_, err := c.Write([]byte(msg))
 	if err != nil {
@@ -54,13 +55,13 @@ func (msgr *messenger) handleProducerConnection(c net.Conn) {
 	defer c.Close()
 	reader := bufio.NewReader(c)
 	for {
-		netData, err := reader.ReadString('\n')
+		msg, err := reader.ReadString('\n')
 		if err != nil {
 			handleConnectionError(err, c)
 			return
 		}
 
-		msg := strings.TrimSpace(netData)
+		msg = strings.TrimSpace(msg)
 		msgr.msgPipeline <- msg
 		_, err = c.Write([]byte("Acknowledged\n"))
 		if err != nil {
