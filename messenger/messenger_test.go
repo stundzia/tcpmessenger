@@ -41,7 +41,7 @@ func TestMessenger_Run(t *testing.T) {
 }
 
 func TestMessengerWithSingleProducerConsumerPair(t *testing.T) {
-	tt := []struct {
+	tcs := []struct {
 		test    string
 		payload []byte
 	}{
@@ -55,7 +55,7 @@ func TestMessengerWithSingleProducerConsumerPair(t *testing.T) {
 		},
 	}
 	time.Sleep(1 * time.Second)
-	for _, tc := range tt {
+	for _, tc := range tcs {
 		t.Run(tc.test, func(t *testing.T) {
 			producerConn, err := net.Dial("tcp", ":8033")
 			if err != nil || producerConn == nil {
@@ -79,7 +79,7 @@ func TestMessengerWithSingleProducerConsumerPair(t *testing.T) {
 }
 
 func TestMessengerWithMultipleProducersAndConsumers(t *testing.T) {
-	tt := []struct {
+	tcs := []struct {
 		test     string
 		payload1 []byte
 		payload2 []byte
@@ -96,7 +96,7 @@ func TestMessengerWithMultipleProducersAndConsumers(t *testing.T) {
 		},
 	}
 	time.Sleep(1 * time.Second)
-	for _, tc := range tt {
+	for _, tc := range tcs {
 		t.Run(tc.test, func(t *testing.T) {
 			producerConn, err := net.Dial("tcp", ":8033")
 			if err != nil || producerConn == nil {
