@@ -16,10 +16,7 @@ Package usage:
 ```go
 package main
 
-import (
-	"f.oxy.works/paulius.stundzia/tcpmessenger/messenger"
-	"time"
-)
+import "f.oxy.works/paulius.stundzia/tcpmessenger/messenger"
 
 func main() {
     // Create messenger that listens for messages on port 8033
