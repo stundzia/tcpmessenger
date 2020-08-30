@@ -47,7 +47,7 @@ func (msgr *messenger) sendMessageToConsumerConnection(c net.Conn, msg string) {
 	_, err := c.Write([]byte(msg))
 	if err != nil {
 		handleConnectionError(err, c)
-		msgr.removeConnectionFromPool(c)
+		go msgr.removeConnectionFromPool(c)
 	}
 }
 
