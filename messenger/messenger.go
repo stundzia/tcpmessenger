@@ -7,6 +7,7 @@ import (
 	"net"
 	"strconv"
 	"strings"
+	"sync"
 )
 
 type messenger struct {
@@ -14,7 +15,9 @@ type messenger struct {
 	producerPort           int
 	consumerPort           int
 	consumerConnectionPool []net.Conn
+	connectionPoolLock *sync.Mutex
 }
+
 
 // GetMessenger initializes and returns a messenger instance.
 func GetMessenger(producerPort int, consumerPort int) (msgr *messenger) {
@@ -22,15 +25,19 @@ func GetMessenger(producerPort int, consumerPort int) (msgr *messenger) {
 		msgPipeline:  make(chan string),
 		producerPort: producerPort,
 		consumerPort: consumerPort,
+		connectionPoolLock: &sync.Mutex{},
 	}
 	return
 }
 
 // removeConnectionFromPool finds and removes the given connection from the messengers pool of consumer connections.
 func (msgr *messenger) removeConnectionFromPool(c net.Conn) {
+	msgr.connectionPoolLock.Lock()
+	defer msgr.connectionPoolLock.Unlock()
 	for i, cc := range msgr.consumerConnectionPool {
 		if c == cc {
 			msgr.consumerConnectionPool = append(msgr.consumerConnectionPool[:i], msgr.consumerConnectionPool[i+1:]...)
+			break
 		}
 	}
 }
