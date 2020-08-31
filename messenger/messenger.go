@@ -2,7 +2,6 @@ package messenger
 
 import (
 	"bufio"
-	"fmt"
 	"log"
 	"net"
 	"strconv"
@@ -12,31 +11,29 @@ import (
 
 type messenger struct {
 	msgPipeline            chan string
-	producerPort           int
-	consumerPort           int
+	port           int
 	consumerConnectionPool map[net.Conn]struct{}
 	connectionPoolLock *sync.Mutex
 }
 
 
-// GetMessenger initializes and returns a messenger instance.
-func GetMessenger(producerPort int, consumerPort int) (msgr *messenger) {
+// NewMessenger initializes and returns a messenger instance.
+func NewMessenger(port int) (msgr *messenger) {
 	msgr = &messenger{
 		msgPipeline:  make(chan string),
-		producerPort: producerPort,
-		consumerPort: consumerPort,
+		port: port,
 		consumerConnectionPool: make(map[net.Conn]struct{}),
 		connectionPoolLock: &sync.Mutex{},
 	}
 	return
 }
 
-// removeConnectionFromPool finds and removes the given connection from the messengers pool of consumer connections.
-func (msgr *messenger) removeConnectionFromPool(c net.Conn) {
+// removeConnectionFromPool finds and removes the given connection from the messengers pool of connections.
+func (msgr *messenger) removeConnectionFromPool(pool map[net.Conn]struct{},c net.Conn) {
 	msgr.connectionPoolLock.Lock()
 	defer msgr.connectionPoolLock.Unlock()
 
-	delete(msgr.consumerConnectionPool, c)
+	delete(pool, c)
 }
 
 // sendMessageToConsumerConnection sends the provided msg string over the given connection.
@@ -44,7 +41,7 @@ func (msgr *messenger) sendMessageToConsumerConnection(c net.Conn, msg string) {
 	_, err := c.Write([]byte(msg))
 	if err != nil {
 		handleConnectionError(err, c)
-		go msgr.removeConnectionFromPool(c)
+		go msgr.removeConnectionFromPool(msgr.consumerConnectionPool, c)
 	}
 }
 
@@ -75,45 +72,49 @@ func (msgr *messenger) handleProducerConnection(c net.Conn) {
 	}
 }
 
-// listenForProducers listens for connections on the producer port.
-func (msgr *messenger) listenForProducers() {
-	port := ":" + strconv.Itoa(msgr.producerPort)
-	l, err := net.Listen("tcp4", port)
-	defer l.Close()
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-
+func (msgr *messenger) sortConnection(c net.Conn) {
+	reader := bufio.NewReader(c)
 	for {
-		c, err := l.Accept()
+		msg, err := reader.ReadString('\n')
 		if err != nil {
-			fmt.Println(err)
+			handleConnectionError(err, c)
 			return
 		}
-		go msgr.handleProducerConnection(c)
+
+		msg = strings.TrimSpace(msg)
+		switch msg {
+			case "p":
+				go msgr.handleProducerConnection(c)
+				return
+			case "c":
+				msgr.consumerConnectionPool[c] = struct{}{}
+				return
+			default:
+				_, err = c.Write([]byte("Unclear consumer/producer choice\n"))
+		}
+		if err != nil {
+			handleConnectionError(err, c)
+		}
 	}
 }
 
-// listenForConsumers listens for new consumer connections and adds them to the consumer connection pool.
-func (msgr *messenger) listenForConsumers() {
-	port := ":" + strconv.Itoa(msgr.consumerPort)
+
+func (msgr *messenger) listenForConnections() {
+	port := ":" + strconv.Itoa(msgr.port)
 	l, err := net.Listen("tcp4", port)
+	defer l.Close()
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
-	defer l.Close()
 
 	for {
 		c, err := l.Accept()
 		if err != nil {
-			fmt.Println(err)
-			continue
+			log.Println(err)
+			return
 		}
-		msgr.connectionPoolLock.Lock()
-		msgr.consumerConnectionPool[c] = struct{}{}
-		msgr.connectionPoolLock.Unlock()
+		go msgr.sortConnection(c)
 	}
 }
 
@@ -132,7 +133,6 @@ func (msgr *messenger) produceMessages() {
 // Run starts the messenger.
 // Run will start listening for tcp connections on 2 ports (producerPort and consumerPort).
 func (msgr *messenger) Run() {
-	go msgr.listenForConsumers()
-	go msgr.listenForProducers()
+	go msgr.listenForConnections()
 	go msgr.produceMessages()
 }
