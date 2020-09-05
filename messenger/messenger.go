@@ -73,6 +73,7 @@ func (msgr *messenger) handleProducerConnection(c net.Conn) {
 }
 
 func (msgr *messenger) sortConnection(c net.Conn) {
+	_, _ = c.Write([]byte("Type `c` for `consumer`, `p` for producer\n"))
 	reader := bufio.NewReader(c)
 	for {
 		msg, err := reader.ReadString('\n')
@@ -84,10 +85,14 @@ func (msgr *messenger) sortConnection(c net.Conn) {
 		msg = strings.TrimSpace(msg)
 		switch msg {
 			case "p":
+				_, _ = c.Write([]byte("Entering `producer` mode\n"))
 				go msgr.handleProducerConnection(c)
 				return
 			case "c":
+				_, _ = c.Write([]byte("Entering `consumer` mode\n"))
+				msgr.connectionPoolLock.Lock()
 				msgr.consumerConnectionPool[c] = struct{}{}
+				msgr.connectionPoolLock.Unlock()
 				return
 			default:
 				_, err = c.Write([]byte("Unclear consumer/producer choice\n"))
