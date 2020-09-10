@@ -2,6 +2,7 @@ package messenger
 
 import (
 	"bytes"
+	"fmt"
 	"net"
 	"testing"
 	"time"
@@ -10,34 +11,48 @@ import (
 var msgr *messenger
 
 func init() {
-	msgr = GetMessenger(8033, 8044)
-	go func() {
-		msgr.Run()
-	}()
+	msgr = NewMessenger(8033)
+	go msgr.Run()
 }
 
-func checkOutputOnConsumerConnection(c net.Conn, expected []byte, t *testing.T) {
+func checkOutput(c net.Conn, expected []byte, t *testing.T) {
 	out := make([]byte, 128)
+	_ = c.SetReadDeadline(time.Now().Add(3 * time.Second)) // timeout in 3 seconds
 	if _, err := c.Read(out); err == nil {
 		out = bytes.Trim(out, "\x00")
 		if bytes.Compare(out, expected) != 0 {
 			t.Errorf("response did not match expected output - got `%s`, but expected `%s`", string(out), string(expected))
 		}
 	} else {
-		t.Error("could not read from connection")
+		t.Error("could not read from connection: ", err)
 	}
+}
+
+func setupAndTestConnection(conn net.Conn, connType string, t *testing.T) {
+	checkOutput(conn, []byte("Type `c` for `consumer`, `p` for producer\n"), t)
+	if _, err := conn.Write([]byte(fmt.Sprintf("%s\n", connType))); err != nil {
+		t.Error("could not write payload to server: ", err)
+	}
+	var connTypeFull string
+	switch connType {
+	case "p":
+		connTypeFull = "producer"
+	case "c":
+		connTypeFull = "consumer"
+	default:
+		t.Error("bad test case, unknown connType provided: ", connType)
+	}
+	modeMsg := fmt.Sprintf("Entering `%s` mode\n", connTypeFull)
+	checkOutput(conn, []byte(modeMsg), t)
 }
 
 func TestMessenger_Run(t *testing.T) {
 	time.Sleep(1 * time.Second) // Give time for messenger to spin up.
-	producerConn, err := net.Dial("tcp", ":8033")
-	if err != nil || producerConn == nil {
-		t.Error("could not obtain producer connection: ", err)
+	conn, err := net.Dial("tcp", ":8033")
+	if err != nil || conn == nil {
+		t.Error("could not obtain connection: ", err)
 	}
-	consumerConn, err := net.Dial("tcp", ":8044")
-	if err != nil || consumerConn == nil {
-		t.Error("could not obtain consumer connection: ", err)
-	}
+	setupAndTestConnection(conn, "c", t)
 }
 
 func TestMessengerWithSingleProducerConsumerPair(t *testing.T) {
@@ -61,19 +76,21 @@ func TestMessengerWithSingleProducerConsumerPair(t *testing.T) {
 			if err != nil || producerConn == nil {
 				t.Error("could not obtain producer connection: ", err)
 			}
-			consumerConn, err := net.Dial("tcp", ":8044")
+			setupAndTestConnection(producerConn, "p", t)
+			consumerConn, err := net.Dial("tcp", ":8033")
 			if err != nil || consumerConn == nil {
 				t.Error("could not obtain consumer connection: ", err)
 			}
+			setupAndTestConnection(consumerConn, "c", t)
 
 			defer producerConn.Close()
 			defer consumerConn.Close()
 
-			if _, err := producerConn.Write(tc.payload); err != nil {
+			if _, err = producerConn.Write(tc.payload); err != nil {
 				t.Error("could not write payload to producer: ", err)
 			}
 
-			checkOutputOnConsumerConnection(consumerConn, tc.payload, t)
+			checkOutput(consumerConn, tc.payload, t)
 		})
 	}
 }
@@ -102,22 +119,27 @@ func TestMessengerWithMultipleProducersAndConsumers(t *testing.T) {
 			if err != nil || producerConn == nil {
 				t.Error("could not obtain producer connection: ", err)
 			}
+			setupAndTestConnection(producerConn, "p", t)
 			producerConn2, err := net.Dial("tcp", ":8033")
 			if err != nil || producerConn2 == nil {
 				t.Error("could not obtain producer connection no. 2: ", err)
 			}
-			consumerConn, err := net.Dial("tcp", ":8044")
+			setupAndTestConnection(producerConn2, "p", t)
+			consumerConn, err := net.Dial("tcp", ":8033")
 			if err != nil || consumerConn == nil {
 				t.Error("could not obtain consumer connection: ", err)
 			}
-			consumerConn2, err := net.Dial("tcp", ":8044")
+			setupAndTestConnection(consumerConn, "c", t)
+			consumerConn2, err := net.Dial("tcp", ":8033")
 			if err != nil || consumerConn2 == nil {
 				t.Error("could not obtain consumer connection no. 2: ", err)
 			}
-			consumerConn3, err := net.Dial("tcp", ":8044")
+			setupAndTestConnection(consumerConn2, "c", t)
+			consumerConn3, err := net.Dial("tcp", ":8033")
 			if err != nil || consumerConn3 == nil {
 				t.Error("could not obtain consumer connection no. 3: ", err)
 			}
+			setupAndTestConnection(consumerConn3, "c", t)
 
 			defer producerConn.Close()
 			defer producerConn2.Close()
@@ -132,7 +154,7 @@ func TestMessengerWithMultipleProducersAndConsumers(t *testing.T) {
 			}
 
 			for _, cc := range consumerConns {
-				checkOutputOnConsumerConnection(cc, tc.payload1, t)
+				checkOutput(cc, tc.payload1, t)
 			}
 
 			if _, err := producerConn.Write(tc.payload2); err != nil {
@@ -140,7 +162,7 @@ func TestMessengerWithMultipleProducersAndConsumers(t *testing.T) {
 			}
 
 			for _, cc := range consumerConns {
-				checkOutputOnConsumerConnection(cc, tc.payload2, t)
+				checkOutput(cc, tc.payload2, t)
 			}
 		})
 	}
