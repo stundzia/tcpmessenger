@@ -120,7 +120,6 @@ func (msgr *messenger) handleProducerConnection(c net.Conn, name string) {
 			content: msg,
 		}
 		msgr.msgPipeline <- msgObj
-		_, err = c.Write([]byte("Acknowledged\n"))
 		if err != nil {
 			msgr.handleConnectionError(err, c)
 			return
