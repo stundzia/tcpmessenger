@@ -11,7 +11,7 @@ import (
 var msgr *messenger
 
 func init() {
-	msgr = NewMessenger(8033)
+	msgr = NewMessenger(8044)
 	go msgr.Run()
 }
 
@@ -33,7 +33,7 @@ func setupAndTestConnection(port int, connType string, t *testing.T) net.Conn {
 	if err != nil || conn == nil {
 		t.Error("could not obtain connection: ", err)
 	}
-	checkOutput(conn, []byte("Type `c` for `consumer`, `p` for producer\n"), t)
+	checkOutput(conn, []byte("Type `c` for `consumer`, `p` for producer or `chat` for chat mode\n"), t)
 	if _, err := conn.Write([]byte(fmt.Sprintf("%s\n", connType))); err != nil {
 		t.Error("could not write payload to server: ", err)
 	}
@@ -53,7 +53,7 @@ func setupAndTestConnection(port int, connType string, t *testing.T) net.Conn {
 
 func TestMessenger_Run(t *testing.T) {
 	time.Sleep(1 * time.Second) // Give time for messenger to spin up.
-	setupAndTestConnection(8033, "c", t)
+	setupAndTestConnection(8044, "c", t)
 }
 
 func TestMessengerWithSingleProducerConsumerPair(t *testing.T) {
@@ -73,8 +73,8 @@ func TestMessengerWithSingleProducerConsumerPair(t *testing.T) {
 	time.Sleep(1 * time.Second)
 	for _, tc := range tcs {
 		t.Run(tc.test, func(t *testing.T) {
-			producerConn := setupAndTestConnection(8033, "p", t)
-			consumerConn := setupAndTestConnection(8033, "c", t)
+			producerConn := setupAndTestConnection(8044, "p", t)
+			consumerConn := setupAndTestConnection(8044, "c", t)
 
 			defer producerConn.Close()
 			defer consumerConn.Close()
@@ -108,11 +108,11 @@ func TestMessengerWithMultipleProducersAndConsumers(t *testing.T) {
 	time.Sleep(1 * time.Second)
 	for _, tc := range tcs {
 		t.Run(tc.test, func(t *testing.T) {
-			producerConn := setupAndTestConnection(8033, "p", t)
-			producerConn2 := setupAndTestConnection(8033, "p", t)
-			consumerConn := setupAndTestConnection(8033, "c", t)
-			consumerConn2 := setupAndTestConnection(8033, "c", t)
-			consumerConn3 := setupAndTestConnection(8033, "c", t)
+			producerConn := setupAndTestConnection(8044, "p", t)
+			producerConn2 := setupAndTestConnection(8044, "p", t)
+			consumerConn := setupAndTestConnection(8044, "c", t)
+			consumerConn2 := setupAndTestConnection(8044, "c", t)
+			consumerConn3 := setupAndTestConnection(8044, "c", t)
 
 			defer producerConn.Close()
 			defer producerConn2.Close()
