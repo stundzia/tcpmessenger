@@ -17,7 +17,7 @@ func init() {
 
 func checkOutput(c net.Conn, expected []byte, t *testing.T) {
 	out := make([]byte, 128)
-	_ = c.SetReadDeadline(time.Now().Add(6 * time.Second)) // timeout in 3 seconds
+	_ = c.SetReadDeadline(time.Now().Add(3 * time.Second)) // timeout in 3 seconds
 	if _, err := c.Read(out); err == nil {
 		out = bytes.Trim(out, "\x00")
 		if bytes.Compare(out, expected) != 0 {
