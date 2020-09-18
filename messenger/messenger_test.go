@@ -17,7 +17,7 @@ func init() {
 
 func checkOutput(c net.Conn, expected []byte, t *testing.T) {
 	out := make([]byte, 128)
-	_ = c.SetReadDeadline(time.Now().Add(3 * time.Second)) // timeout in 3 seconds
+	_ = c.SetReadDeadline(time.Now().Add(6 * time.Second)) // timeout in 3 seconds
 	if _, err := c.Read(out); err == nil {
 		out = bytes.Trim(out, "\x00")
 		if bytes.Compare(out, expected) != 0 {
@@ -71,14 +71,13 @@ func TestMessengerWithSingleProducerConsumerPair(t *testing.T) {
 		},
 	}
 	time.Sleep(1 * time.Second)
+	producerConn := setupAndTestConnection(8044, "p", t)
+	consumerConn := setupAndTestConnection(8044, "c", t)
+
+	defer producerConn.Close()
+	defer consumerConn.Close()
 	for _, tc := range tcs {
 		t.Run(tc.test, func(t *testing.T) {
-			producerConn := setupAndTestConnection(8044, "p", t)
-			consumerConn := setupAndTestConnection(8044, "c", t)
-
-			defer producerConn.Close()
-			defer consumerConn.Close()
-
 			if _, err := producerConn.Write(tc.payload); err != nil {
 				t.Error("could not write payload to producer: ", err)
 			}
@@ -105,23 +104,22 @@ func TestMessengerWithMultipleProducersAndConsumers(t *testing.T) {
 			[]byte("You keep using that word. I do not think it means what you think it means.\n"),
 		},
 	}
+	producerConn := setupAndTestConnection(8044, "p", t)
+	producerConn2 := setupAndTestConnection(8044, "p", t)
+	consumerConn := setupAndTestConnection(8044, "c", t)
+	consumerConn2 := setupAndTestConnection(8044, "c", t)
+	consumerConn3 := setupAndTestConnection(8044, "c", t)
+
+	defer producerConn.Close()
+	defer producerConn2.Close()
+	defer consumerConn.Close()
+	defer consumerConn2.Close()
+	defer consumerConn3.Close()
+
+	consumerConns := []net.Conn{consumerConn, consumerConn2, consumerConn3}
 	time.Sleep(1 * time.Second)
 	for _, tc := range tcs {
 		t.Run(tc.test, func(t *testing.T) {
-			producerConn := setupAndTestConnection(8044, "p", t)
-			producerConn2 := setupAndTestConnection(8044, "p", t)
-			consumerConn := setupAndTestConnection(8044, "c", t)
-			consumerConn2 := setupAndTestConnection(8044, "c", t)
-			consumerConn3 := setupAndTestConnection(8044, "c", t)
-
-			defer producerConn.Close()
-			defer producerConn2.Close()
-			defer consumerConn.Close()
-			defer consumerConn2.Close()
-			defer consumerConn3.Close()
-
-			consumerConns := []net.Conn{consumerConn, consumerConn2, consumerConn3}
-
 			if _, err := producerConn.Write(tc.payload1); err != nil {
 				t.Error("could not write payload to producer: ", err)
 			}
