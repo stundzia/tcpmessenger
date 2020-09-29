@@ -1,7 +1,9 @@
 image: golang:latest
 
 variables:
-  REPO_NAME: f.oxy.works/paulius.stundzia/tcpmessenger
+  REPO_NAME: $CI_SERVER_HOST/$CI_PROJECT_PATH
+  GIT_CLONE_PATH: /builds/go/src/$REPO_NAME/
+  GOPATH: /builds/go
 
 before_script:
   - mkdir -p $GOPATH/src/$(dirname $REPO_NAME)
