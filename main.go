@@ -6,7 +6,7 @@ import (
 )
 
 func main() {
-	port := flag.Int("p", 8033, "Port (default: 8033)")
+	port := flag.Int("p", 8033, "Port")
 	flag.Parse()
 	msgr := messenger.NewMessenger(*port)
 	msgr.Run()
