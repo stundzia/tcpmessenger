@@ -152,9 +152,9 @@ func TestMessengerWithMultipleProducersAndConsumers(t *testing.T) {
 func TestMessengerWithMultipleChatUsers(t *testing.T) {
 	tcs := []struct {
 		test     string
-		user1 string
+		user1    string
 		payload1 []byte
-		user2 string
+		user2    string
 		payload2 []byte
 	}{
 		{
