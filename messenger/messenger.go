@@ -3,11 +3,12 @@ package messenger
 import (
 	"bufio"
 	"fmt"
-	"go.uber.org/zap"
 	"net"
 	"strconv"
 	"strings"
 	"sync"
+
+	"go.uber.org/zap"
 )
 
 type messenger struct {
