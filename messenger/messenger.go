@@ -2,6 +2,7 @@ package messenger
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"net"
 	"strconv"
@@ -24,6 +25,10 @@ type messenger struct {
 type message struct {
 	name    string
 	content string
+}
+
+func newNameTakenError(name string) error {
+	return errors.New(fmt.Sprintf("%s is already taken", name))
 }
 
 // outputString returns message string formatted for output.
@@ -56,7 +61,7 @@ func (msgr *messenger) addConnectionAndNameToConsumers(c net.Conn, name string) 
 		msgr.chatNameLock.Lock()
 		defer msgr.chatNameLock.Unlock()
 		if _, exists := msgr.chatNames[name]; exists == true {
-			return NewNameTakenError(name)
+			return newNameTakenError(name)
 		}
 		msgr.chatNames[name] = struct{}{}
 	}
@@ -126,6 +131,8 @@ func (msgr *messenger) handleProducerConnection(c net.Conn, name string) {
 	}
 }
 
+// sortConnection handles new connections to the messenger and whether they should
+// be treated as consumers, producers or chat participants based on their first message.
 func (msgr *messenger) sortConnection(c net.Conn) {
 	reader := bufio.NewReader(c)
 	for {
@@ -209,7 +216,7 @@ func (msgr *messenger) produceMessages() {
 }
 
 // Run starts the messenger.
-// Run will start listening for tcp connections on 2 ports (producerPort and consumerPort).
+// Run will start listening for tcp connections.
 func (msgr *messenger) Run() {
 	msgr.logger.Info("messenger running")
 	go msgr.listenForConnections()
