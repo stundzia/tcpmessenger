@@ -6,10 +6,9 @@ import (
 )
 
 func main() {
-	producerPort := flag.Int("p", 8033, "Producer port (default: 8033)")
-	consumerPort := flag.Int("c", 8044, "Consumer port (default: 8044)")
+	port := flag.Int("p", 8033, "Port")
 	flag.Parse()
-	msgr := messenger.GetMessenger(*producerPort, *consumerPort)
+	msgr := messenger.NewMessenger(*port)
 	msgr.Run()
 	select {}
 }
